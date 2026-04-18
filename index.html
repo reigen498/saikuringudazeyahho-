@@ -3,16 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>爆走チャリレース - スマホ風・コイン機能追加</title>
+<title>爆走チャリレース - スマホ風・コイン機能追加（スマホ操作最適化版）</title>
 <style>
-    /* スマホゲーム風の全画面固定・選択不可設定 */
-    body { margin:0; background:#222; overflow:hidden; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; -webkit-user-select: none; }
-    canvas { display:block; margin:auto; background:#87ceeb; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    /* スマホゲーム風の全画面固定・選択不可・スワイプスクロール禁止設定 */
+    body { 
+        margin: 0; background: #222; overflow: hidden; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        user-select: none; -webkit-user-select: none; 
+        touch-action: none; /* スワイプやダブルタップズームを防止 */
+    }
+    canvas { display: block; margin: auto; background: #87ceeb; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
     
     #homeUI {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-        pointer-events: none;
-        z-index: 10;
+        pointer-events: none; z-index: 10;
     }
 
     .green-btn {
@@ -26,40 +30,17 @@
     }
     .green-btn:active { transform: translateY(4px); box-shadow: 0px 0px 0px rgba(0,0,0,0.8); }
 
-    /* 各ボタンをスマホ画面（相対値）に合わせてレスポンシブに */
-    #nameBox {
-        top: 3vh; left: 3vw; width: 30vw; max-width: 150px; height: 7vh; max-height: 50px;
-        border-radius: 20px; font-size: clamp(0.8rem, 3.5vw, 1.2rem);
-        transform: rotate(-3deg);
-    }
-    #coinBox {
-        top: 3vh; right: 3vw; width: 35vw; max-width: 160px; height: 7vh; max-height: 50px;
-        border-radius: 30px; font-size: clamp(0.8rem, 3.5vw, 1.2rem);
-    }
-    #gachaBtn {
-        top: 15vh; right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px;
-        border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1.1rem);
-    }
-    #kisekaeBtn {
-        top: calc(15vh + 22vmin); right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px;
-        border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1rem);
-    }
-    
-    #timeAttackBtn {
-        bottom: 10vh; left: 8vw; width: 40vw; max-width: 180px; height: 10vh; max-height: 70px;
-        border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem);
-        transform: rotate(-5deg);
-    }
-    #endlessBtn {
-        bottom: 10vh; right: 8vw; width: 35vw; max-width: 160px; height: 10vh; max-height: 70px;
-        border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem);
-        transform: rotate(3deg);
-    }
+    #nameBox { top: 3vh; left: 3vw; width: 30vw; max-width: 150px; height: 7vh; max-height: 50px; border-radius: 20px; font-size: clamp(0.8rem, 3.5vw, 1.2rem); transform: rotate(-3deg); }
+    #coinBox { top: 3vh; right: 3vw; width: 35vw; max-width: 160px; height: 7vh; max-height: 50px; border-radius: 30px; font-size: clamp(0.8rem, 3.5vw, 1.2rem); }
+    #gachaBtn { top: 15vh; right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px; border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1.1rem); }
+    #kisekaeBtn { top: calc(15vh + 22vmin); right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px; border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1rem); }
+    #timeAttackBtn { bottom: 10vh; left: 8vw; width: 40vw; max-width: 180px; height: 10vh; max-height: 70px; border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem); transform: rotate(-5deg); }
+    #endlessBtn { bottom: 10vh; right: 8vw; width: 35vw; max-width: 160px; height: 10vh; max-height: 70px; border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem); transform: rotate(3deg); }
 
     #resultOverlay {
-        position:fixed; top:0; left:0; width:100vw; height:100vh;
-        display:none; justify-content:center; align-items:center;
-        z-index:9999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        display: none; justify-content: center; align-items: center;
+        z-index: 9999; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
     }
     #menuBox {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -76,6 +57,23 @@
         font-weight: bold; box-shadow: 0 6px 0 #c4a700; transition: all 0.1s;
     }
     .home-back-btn:active { transform: translateY(6px); box-shadow: none; }
+
+    /* スマホ用バーチャルパッド（プレイ中のみ表示） */
+    #gameControls {
+        position: fixed; bottom: 5vh; left: 0; width: 100vw;
+        display: none; justify-content: space-between; align-items: flex-end;
+        pointer-events: none; z-index: 50; padding: 0 5vw; box-sizing: border-box;
+    }
+    .control-group { display: flex; gap: 4vw; pointer-events: auto; }
+    .v-btn {
+        width: 16vw; height: 16vw; max-width: 70px; max-height: 70px;
+        background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.6);
+        border-radius: 50%; display: flex; justify-content: center; align-items: center;
+        font-size: 1.5rem; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        transition: background 0.1s, transform 0.1s;
+    }
+    .v-btn:active { background: rgba(255, 255, 255, 0.5); transform: scale(0.9); }
 </style>
 </head>
 <body>
@@ -104,7 +102,21 @@
 
 <canvas id="game"></canvas>
 
+<div id="gameControls">
+    <div class="control-group">
+        <div class="v-btn" id="btnLeft">◀</div>
+        <div class="v-btn" id="btnRight">▶</div>
+    </div>
+    <div class="control-group">
+        <div class="v-btn" id="btnBoost">🔥</div>
+        <div class="v-btn" id="btnJump">⬆️</div>
+    </div>
+</div>
+
 <script>
+// 右クリックメニューや長押しメニューを禁止
+document.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const homeUI = document.getElementById("homeUI");
@@ -116,18 +128,16 @@ const coinText = document.getElementById("coinText");
 
 const endlessBtn = document.getElementById("endlessBtn");
 const backToHomeBtn = document.getElementById("backToHomeBtn");
+const gameControls = document.getElementById("gameControls"); // 仮想ボタンコンテナ
 
-// データロード (スコアとコイン)
+// データロード
 let highScore = 0;
-let coins = 100; // 初期持ち金100円
+let coins = 100;
 try {
     highScore = localStorage.getItem("chari_highscore") || 0;
     let savedCoins = localStorage.getItem("chari_coins");
-    if(savedCoins !== null) {
-        coins = parseInt(savedCoins);
-    } else {
-        localStorage.setItem("chari_coins", coins);
-    }
+    if(savedCoins !== null) { coins = parseInt(savedCoins); } 
+    else { localStorage.setItem("chari_coins", coins); }
 } catch(e) {}
 highScoreText.innerHTML = Math.floor(highScore);
 coinText.innerHTML = coins;
@@ -135,15 +145,12 @@ coinText.innerHTML = coins;
 const PLAYER_IMG_SRC = "主人公.png";
 const ENEMY_IMG_SRC  = "主人公.png";
 const GAP_IMG_SRC    = "隙間.png"; 
-const BGM_MAIN = "ひとりぼっちじゃない.mp3";
-const BGM_RESULT = "ひとりえっちはもうしない.mp3";
 
 const playerImg = new Image(); playerImg.src = PLAYER_IMG_SRC;
 const enemyImg = new Image(); enemyImg.src = ENEMY_IMG_SRC;
 const gapImg = new Image(); gapImg.src = GAP_IMG_SRC; 
 
 const bgm = new Audio(); bgm.loop = true;
-
 function playBGM(src) {
     try {
         if (bgm.src.includes(src)) return;
@@ -185,28 +192,29 @@ let dashTimer = 0, boostCoolDown = 0, roadOffset = 0, spawnCooldown = 0;
 let combo = 0, feverTimer = 0, coinSpawnTimer = 0;
 let keys = {};
 
-const LANE_OFFSETS = [-0.7, -0.35, 0, 0.35, 0.7];
-
+// PC用キーボード入力
 document.addEventListener("keydown", e => keys[e.code] = true);
 document.addEventListener("keyup", e => keys[e.code] = false);
 
-// スマホ画面のタッチ操作対応 (左右の画面タップで移動、上部タップでジャンプ等)
-canvas.addEventListener("touchstart", (e) => {
-    if(!gameRunning) return;
-    let touchX = e.touches[0].clientX;
-    let touchY = e.touches[0].clientY;
-    if(touchY < window.innerHeight / 2 && boostCoolDown <= 0 && dashTimer <= 0) {
-        keys["ArrowUp"] = true; // 上半分タップでブースト
-    } else if(touchY > window.innerHeight * 0.75) {
-        keys["Space"] = true; // 下部タップでジャンプ
-    } else {
-        if(touchX < window.innerWidth / 2) keys["ArrowLeft"] = true;
-        else keys["ArrowRight"] = true;
-    }
-});
-canvas.addEventListener("touchend", () => {
-    keys["ArrowUp"] = false; keys["Space"] = false; keys["ArrowLeft"] = false; keys["ArrowRight"] = false;
-});
+// スマホ用仮想ボタンの入力制御
+const bindVirtualButton = (btnId, keyName) => {
+    const btn = document.getElementById(btnId);
+    // タッチデバイス用
+    btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; }, {passive: false});
+    btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; }, {passive: false});
+    btn.addEventListener("touchcancel", (e) => { e.preventDefault(); keys[keyName] = false; }, {passive: false});
+    // マウス操作（PC確認用）
+    btn.addEventListener("mousedown", (e) => { e.preventDefault(); keys[keyName] = true; });
+    btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[keyName] = false; });
+    btn.addEventListener("mouseleave", (e) => { e.preventDefault(); keys[keyName] = false; });
+};
+
+bindVirtualButton("btnLeft", "ArrowLeft");
+bindVirtualButton("btnRight", "ArrowRight");
+bindVirtualButton("btnJump", "Space");
+bindVirtualButton("btnBoost", "ArrowUp");
+
+const LANE_OFFSETS = [-0.7, -0.35, 0, 0.35, 0.7];
 
 function initHome() {
     resize();
@@ -214,19 +222,25 @@ function initHome() {
     gameRunning = false;
     homeUI.style.display = "block";
     resultOverlay.style.display = "none";
-    coinText.innerHTML = coins; // ホームに戻った時に最新のコインを反映
+    gameControls.style.display = "none"; // ボタン非表示
+    coinText.innerHTML = coins; 
 }
 
 endlessBtn.onclick = (e) => {
     e.stopPropagation(); initAudio();
     homeUI.style.display = "none";
+    gameControls.style.display = "flex"; // プレイ中のみボタン表示
+    
     player = { x: canvas.width / 2, y: canvas.height - 180, vy: 0, onGround: true, jumpOverGap: false };
     enemies = []; gaps = []; spawnedCoins = [];
     score = 0; earnedCoins = 0; baseSpeed = 4.5; speed = 4.5; 
     dashTimer = 0; boostCoolDown = 0; spawnCooldown = 0; coinSpawnTimer = 24;
     combo = 0; feverTimer = 0; roadOffset = 0;
+    
+    // 操作状態をリセット
+    keys = {};
     gameRunning = true;
-    playBGM(BGM_MAIN);
+    playBGM("ひとりぼっちじゃない.mp3"); // BGM名変更可
 };
 
 backToHomeBtn.onclick = () => { initHome(); bgm.pause(); };
@@ -272,17 +286,17 @@ function spawnLogic() {
 function gameOver() {
     if(!gameRunning) return;
     gameRunning = false;
-    let finalScore = Math.floor(score);
+    gameControls.style.display = "none"; // ボタン非表示
     
+    let finalScore = Math.floor(score);
     if(finalScore > highScore) {
         highScore = finalScore;
         try { localStorage.setItem("chari_highscore", highScore); } catch(e) {}
     }
-    // コインを保存
     coins += earnedCoins;
     try { localStorage.setItem("chari_coins", coins); } catch(e) {}
 
-    playBGM(BGM_RESULT);
+    playBGM("ひとりえっちはもうしない.mp3"); // BGM名変更可
     setTimeout(() => { 
         resultOverlay.style.display = "flex"; 
         resultScore.innerHTML = `今回のスコア: <span>${finalScore}</span>`; 
@@ -298,7 +312,6 @@ function update(){
     baseSpeed += 0.001;
     let currentMoveSpeed = baseSpeed;
 
-    // 0.4秒に一回（約24フレーム）のコイン抽選
     if(coinSpawnTimer <= 0) {
         let coinProb = feverTimer > 0 ? 0.5 : 0.1;
         if(Math.random() < coinProb) {
@@ -306,9 +319,7 @@ function update(){
             spawnedCoins.push({ lane_offset: offset, y: -100 });
         }
         coinSpawnTimer = 24;
-    } else {
-        coinSpawnTimer--;
-    }
+    } else { coinSpawnTimer--; }
 
     if((keys["ArrowUp"] || keys["KeyW"]) && boostCoolDown <= 0 && dashTimer <= 0){
         dashTimer = 60; boostCoolDown = 300; playSE(800, 0.2, "sawtooth", 0.1);
@@ -340,7 +351,6 @@ function update(){
         player.y = canvas.height - 180; player.vy = 0; player.onGround = true;
     }
 
-    // 地上にいる時のみ左右移動可能
     if(player.onGround) {
         if(keys["ArrowLeft"] || keys["KeyA"]) player.x -= 9;
         if(keys["ArrowRight"] || keys["KeyD"]) player.x += 9;
@@ -365,17 +375,15 @@ function update(){
         if(!player.onGround && Math.abs((g.y+30) - player.y) < 80) player.jumpOverGap = true; 
     });
 
-    // コインの移動と取得判定
     spawnedCoins.forEach((c, index) => {
         c.y += speed;
         let cx = getXPos(c.y, c.lane_offset);
         let s = 0.5 + (0.5 * Math.max(0, c.y / canvas.height));
         let coinHitbox = 20 * s;
-        // プレイヤーに当たったか判定（ジャンプ中でも拾えるように設計）
         if(Math.abs(player.x - cx) < (CHAR_W * 0.5 * s + coinHitbox) && 
            Math.abs(player.y - c.y) < (CHAR_H * 0.7 * s + coinHitbox)){
-            earnedCoins += 5; // ひとかたまり5円
-            playSE(1200, 0.1, "sine", 0.05); // チャリンという高音
+            earnedCoins += 5; 
+            playSE(1200, 0.1, "sine", 0.05); 
             spawnedCoins.splice(index, 1);
         }
     });
@@ -403,28 +411,24 @@ function draw(){
         ctx.fillStyle = "#0088ff"; let sqSize = 80; ctx.fillRect(c - sqSize/2, canvas.height - 80, sqSize, sqSize);
     }
 
-    // 隙間描画
     gaps.forEach(g => { 
         let gw = getRoadHalfWidth(g.y) * 2; let gh = 60; 
         if (gapImg.complete && gapImg.naturalWidth !== 0) ctx.drawImage(gapImg, canvas.width / 2 - gw / 2, g.y, gw, gh);
         else { ctx.fillStyle = "#000"; ctx.fillRect(canvas.width / 2 - gw / 2, g.y, gw, gh); }
     });
 
-    // コイン描画
     spawnedCoins.forEach(coin => {
         let cx = getXPos(coin.y, coin.lane_offset);
         let s = 0.5 + (0.5 * Math.max(0, coin.y / canvas.height));
         let radius = 15 * s;
-        ctx.fillStyle = "#ffd700"; // ゴールデンカラー
+        ctx.fillStyle = "#ffd700"; 
         ctx.beginPath(); ctx.arc(cx, coin.y, radius, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = "#daa520"; ctx.lineWidth = 3 * s; ctx.stroke();
-        // コインの模様（内側の円）
         ctx.beginPath(); ctx.arc(cx, coin.y, radius * 0.6, 0, Math.PI * 2); ctx.stroke();
     });
 
     if(!player) return;
 
-    // 敵描画
     enemies.forEach(e => {
         let x = getXPos(e.y, e.lane_offset);
         let s = 0.5 + (0.5 * Math.max(0, e.y / canvas.height));
@@ -437,7 +441,6 @@ function draw(){
         ctx.filter = "none";
     });
 
-    // プレイヤー描画
     ctx.save();
     if(dashTimer > 0 || feverTimer > 0) ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
     let jumpScale = player.onGround ? 1 : 1.15;
@@ -450,12 +453,11 @@ function draw(){
     }
     ctx.restore();
 
-    // UI描画
     if(gameRunning) {
         ctx.fillStyle = "white"; ctx.font = "bold 24px sans-serif";
         ctx.fillText("SCORE: " + Math.floor(score), 20, 45);
         ctx.fillStyle = "#ffeb3b"; ctx.fillText("COMBO: " + combo, 20, 80);
-        ctx.fillStyle = "#66ff33"; ctx.fillText("💰 " + earnedCoins + " yen", 20, 115); // プレイ中も取得額を表示
+        ctx.fillStyle = "#66ff33"; ctx.fillText("💰 " + earnedCoins + " yen", 20, 115); 
         
         ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(20, canvas.height-40, 150, 20);
         if(boostCoolDown > 0) {
