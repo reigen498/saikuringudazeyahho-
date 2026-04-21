@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>爆走チャリレース - 追い越し警告強化版</title>
+<title>爆走チャリレース</title>
 <style>
     body { 
         margin: 0; background: #222; overflow: hidden; 
@@ -32,7 +32,8 @@
     #coinBox { top: 3vh; right: 3vw; width: 35vw; max-width: 160px; height: 7vh; max-height: 50px; border-radius: 30px; font-size: clamp(0.8rem, 3.5vw, 1.2rem); }
     #gachaBtn { top: 15vh; right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px; border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1.1rem); background-color: #ffd700; }
     #kisekaeBtn { top: calc(15vh + 22vmin); right: 3vw; width: 20vmin; max-width: 90px; height: 20vmin; max-height: 90px; border-radius: 50%; font-size: clamp(0.7rem, 3.5vmin, 1rem); background-color: #ff66b2; color: #fff;}
-    #timeAttackBtn { bottom: 10vh; left: 8vw; width: 40vw; max-width: 180px; height: 10vh; max-height: 70px; border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem); transform: rotate(-5deg); }
+    
+    #storyBtn { bottom: 10vh; left: 8vw; width: 40vw; max-width: 180px; height: 10vh; max-height: 70px; border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem); transform: rotate(-5deg); background-color: #ff9800; color: #fff;}
     #endlessBtn { bottom: 10vh; right: 8vw; width: 35vw; max-width: 160px; height: 10vh; max-height: 70px; border-radius: 40px; font-size: clamp(0.9rem, 4vw, 1.3rem); transform: rotate(3deg); }
 
     .modal-overlay {
@@ -108,19 +109,21 @@
     <div id="gachaBtn" class="green-btn" onclick="openGacha()">ガチャ</div>
     <div id="kisekaeBtn" class="green-btn" onclick="openKisekae('bg')">きせかえ</div>
     
-    <div id="timeAttackBtn" class="green-btn" onclick="alert('タイムアタックモードは準備中です！')">タイムアタック</div>
+    <div id="storyBtn" class="green-btn">ストーリー</div>
     <div id="endlessBtn" class="green-btn">エンドレス</div>
 </div>
 
 <div id="resultOverlay" class="modal-overlay">
     <div class="modal-box" style="background: linear-gradient(135deg, #1e3c72, #2a5298); border-color: #ffeb3b;">
-        <h2>ゲームオーバー</h2>
+        <h2 id="resultTitle">ゲームオーバー</h2>
         <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
             <div id="resultScore">今回のスコア: <span style="color:#ffeb3b; font-size:1.5rem; font-weight:bold;">0</span></div>
             <div>ハイスコア: <span id="highScoreText" style="color:#ffeb3b; font-weight:bold;">0</span></div>
             <div style="margin-top:10px; font-size:0.9rem;">獲得コイン: <span id="resultCoins" style="color:#66ff33; font-size:1.2rem; font-weight:bold;">0</span> yen</div>
+            <div id="storyClearText" style="margin-top:10px; font-size:1rem; color:#ffeb3b; display:none; font-weight:bold;"></div>
         </div>
         <button id="backToHomeBtn" class="gacha-action-btn" style="width:100%;">ホームに戻る</button>
+        <button id="nextStageBtn" class="gacha-action-btn" style="width:100%; display:none; margin-top: 10px; background-color:#ff9800; color:white;">Next ▶</button>
     </div>
 </div>
 
@@ -198,32 +201,34 @@ const GACHA_ITEMS = [
     { id: "bgm_epic", type: "bgm", name: "神BGM", value: "bgm_epic.mp3", rarity: "SR", weight: 5 }
 ];
 
-let highScore = 0;
-let coins = 1000;
+let highScore = 0; let coins = 1000;
 let unlockedItems = ["bg_sky", "char_default", "bgm_default"]; 
-let currentBG = "bg_sky";
-let currentChar = "char_default";
-let currentBGM = "bgm_default";
-let currentKisekaeTab = "bg";
-let latiasShield = false;
-let iframeTimer = 0;
+let currentBG = "bg_sky"; let currentChar = "char_default"; let currentBGM = "bgm_default";
+let latiasShield = false; let iframeTimer = 0;
+
+let gameMode = 'endless'; 
+let currentStoryStage = 0;
+
+// ステージのゲーム内目標
+const STORY_DATA = [
+    { goalScore: 1000, clearText: "チッ…やるじゃないか！\n今日はこの辺にしといてやる！" },
+    { goalScore: 1500, clearText: "ピピ... 機能停止。\nアナタノ勝チデス。" }
+];
 
 try {
-    if(localStorage.getItem("chari_highscore") !== null) highScore = localStorage.getItem("chari_highscore");
-    if(localStorage.getItem("chari_coins") !== null) coins = parseInt(localStorage.getItem("chari_coins"));
-    if(localStorage.getItem("chari_unlocked_items") !== null) unlockedItems = JSON.parse(localStorage.getItem("chari_unlocked_items"));
-    if(localStorage.getItem("chari_current_bg") !== null) currentBG = localStorage.getItem("chari_current_bg");
-    if(localStorage.getItem("chari_current_char") !== null) currentChar = localStorage.getItem("chari_current_char");
-    if(localStorage.getItem("chari_current_bgm") !== null) currentBGM = localStorage.getItem("chari_current_bgm");
+    if(localStorage.getItem("chari_highscore")) highScore = localStorage.getItem("chari_highscore");
+    if(localStorage.getItem("chari_coins")) coins = parseInt(localStorage.getItem("chari_coins"));
+    if(localStorage.getItem("chari_unlocked_items")) unlockedItems = JSON.parse(localStorage.getItem("chari_unlocked_items"));
+    if(localStorage.getItem("chari_current_bg")) currentBG = localStorage.getItem("chari_current_bg");
+    if(localStorage.getItem("chari_current_char")) currentChar = localStorage.getItem("chari_current_char");
+    if(localStorage.getItem("chari_current_bgm")) currentBGM = localStorage.getItem("chari_current_bgm");
 } catch(e) {}
 
 function saveGameData() {
     try {
-        localStorage.setItem("chari_highscore", highScore);
-        localStorage.setItem("chari_coins", coins);
+        localStorage.setItem("chari_highscore", highScore); localStorage.setItem("chari_coins", coins);
         localStorage.setItem("chari_unlocked_items", JSON.stringify(unlockedItems));
-        localStorage.setItem("chari_current_bg", currentBG);
-        localStorage.setItem("chari_current_char", currentChar);
+        localStorage.setItem("chari_current_bg", currentBG); localStorage.setItem("chari_current_char", currentChar);
         localStorage.setItem("chari_current_bgm", currentBGM);
     } catch(e) {}
 }
@@ -235,8 +240,7 @@ function updateCoinUI() {
 updateCoinUI();
 document.getElementById("highScoreText").innerText = Math.floor(highScore);
 
-const playerImg = new Image();
-const playerDamagedImg = new Image(); 
+const playerImg = new Image(); const playerDamagedImg = new Image(); 
 const enemyImg = new Image(); enemyImg.src = "主人公.png"; 
 const gapImg = new Image(); gapImg.src = "隙間.png";
 
@@ -252,84 +256,47 @@ applyCharImage();
 const bgmPlayer = document.getElementById("bgmPlayer");
 function playSelectedBGM() {
     let bgmData = GACHA_ITEMS.find(item => item.id === currentBGM);
-    if(bgmData && bgmData.value) {
-        bgmPlayer.src = bgmData.value;
-        bgmPlayer.play().catch(e => console.log("Tap needed"));
-    }
+    if(bgmData && bgmData.value) { bgmPlayer.src = bgmData.value; bgmPlayer.play().catch(e => {}); }
 }
-function stopBGM() {
-    bgmPlayer.pause();
-    bgmPlayer.currentTime = 0;
-}
+function stopBGM() { bgmPlayer.pause(); bgmPlayer.currentTime = 0; }
 
-function openGacha() {
-    updateCoinUI();
-    document.getElementById("gachaOverlay").style.display = "flex";
-}
-
+function openGacha() { updateCoinUI(); document.getElementById("gachaOverlay").style.display = "flex"; }
 function rollGacha(times) {
     let cost = times === 11 ? 1000 : 100;
     if (coins < cost) { alert("コイン不足！"); return; }
-    coins -= cost;
-    updateCoinUI();
-    saveGameData();
-    playSE(1200, 0.1, "square"); 
-
-    let results = [];
-    let totalWeight = GACHA_ITEMS.reduce((sum, item) => sum + item.weight, 0);
+    coins -= cost; updateCoinUI(); saveGameData(); playSE(1200, 0.1, "square"); 
+    let results = []; let totalWeight = GACHA_ITEMS.reduce((sum, item) => sum + item.weight, 0);
     for(let i = 0; i < times; i++) {
-        let r = Math.random() * totalWeight;
-        let currentWeight = 0;
+        let r = Math.random() * totalWeight; let currentWeight = 0;
         for (let item of GACHA_ITEMS) {
             currentWeight += item.weight;
-            if (r <= currentWeight) {
-                results.push(item);
-                if (!unlockedItems.includes(item.id)) unlockedItems.push(item.id);
-                break;
-            }
+            if (r <= currentWeight) { results.push(item); if (!unlockedItems.includes(item.id)) unlockedItems.push(item.id); break; }
         }
     }
-    saveGameData();
-    showGachaResult(results);
+    saveGameData(); showGachaResult(results);
 }
-
-function getTypeIcon(type) {
-    if(type === 'bg') return '🌄';
-    if(type === 'char') return '👤';
-    if(type === 'bgm') return '🎵';
-    return '';
-}
-
+function getTypeIcon(type) { if(type === 'bg') return '🌄'; if(type === 'char') return '👤'; if(type === 'bgm') return '🎵'; return ''; }
 function showGachaResult(results) {
-    const grid = document.getElementById("gachaResultGrid");
-    grid.innerHTML = "";
+    const grid = document.getElementById("gachaResultGrid"); grid.innerHTML = "";
     results.forEach(item => {
-        let div = document.createElement("div");
-        div.className = `gacha-item rarity-${item.rarity}`;
+        let div = document.createElement("div"); div.className = `gacha-item rarity-${item.rarity}`;
         if(item.type === 'bg') div.style.backgroundColor = item.value;
         div.innerHTML = `<span style="font-size:1.2rem;">${getTypeIcon(item.type)}</span><span style="margin-top:2px;">${item.name}</span>`;
         grid.appendChild(div);
     });
     document.getElementById("gachaOverlay").style.display = "none";
-    document.getElementById("gachaResultOverlay").style.display = "flex";
-    playSE(600, 0.3, "sine", 0.1);
+    document.getElementById("gachaResultOverlay").style.display = "flex"; playSE(600, 0.3, "sine", 0.1);
 }
 
 function openKisekae(tab) {
-    currentKisekaeTab = tab;
     document.getElementById("tab_bg").className = "tab-btn " + (tab === 'bg' ? 'active' : '');
     document.getElementById("tab_char").className = "tab-btn " + (tab === 'char' ? 'active' : '');
     document.getElementById("tab_bgm").className = "tab-btn " + (tab === 'bgm' ? 'active' : '');
-
-    const grid = document.getElementById("kisekaeGrid");
-    grid.innerHTML = "";
-    let filteredItems = GACHA_ITEMS.filter(item => item.type === tab);
-
-    filteredItems.forEach(item => {
+    const grid = document.getElementById("kisekaeGrid"); grid.innerHTML = "";
+    GACHA_ITEMS.filter(item => item.type === tab).forEach(item => {
         let isSelected = (tab === 'bg' && currentBG === item.id) || (tab === 'char' && currentChar === item.id) || (tab === 'bgm' && currentBGM === item.id);
         if(unlockedItems.includes(item.id)) {
-            let div = document.createElement("div");
-            div.className = `gacha-item kisekae-item rarity-${item.rarity} ${isSelected ? 'selected' : ''}`;
+            let div = document.createElement("div"); div.className = `gacha-item kisekae-item rarity-${item.rarity} ${isSelected ? 'selected' : ''}`;
             if(item.type === 'bg') div.style.backgroundColor = item.value;
             div.innerHTML = `<span style="font-size:1.2rem;">${getTypeIcon(item.type)}</span><span style="margin-top:2px;">${item.name}</span>`;
             div.onclick = () => {
@@ -340,10 +307,8 @@ function openKisekae(tab) {
             };
             grid.appendChild(div);
         } else {
-            let div = document.createElement("div");
-            div.className = `gacha-item`; div.style.backgroundColor = "#222"; div.style.color = "#555";
-            div.style.borderColor = "#444"; div.innerHTML = `<span>???</span>`;
-            grid.appendChild(div);
+            let div = document.createElement("div"); div.className = `gacha-item`; div.style.backgroundColor = "#222"; div.style.color = "#555";
+            div.style.borderColor = "#444"; div.innerHTML = `<span>???</span>`; grid.appendChild(div);
         }
     });
     document.getElementById("kisekaeOverlay").style.display = "flex";
@@ -357,10 +322,8 @@ function initAudio() {
 function playSE(freq, time=0.1, type="square", vol=0.05){
     if(!audioCtx || audioCtx.state !== 'running') return;
     const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-    osc.frequency.value = freq; osc.type = type;
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time);
+    osc.frequency.value = freq; osc.type = type; osc.connect(gain); gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time);
     osc.start(); osc.stop(audioCtx.currentTime + time);
 }
 
@@ -372,11 +335,11 @@ function resize(){
 }
 window.addEventListener("resize", resize); 
 
-let player = null, enemies = [], gaps = [], spawnedCoins = [];
+let player = null, enemies = [], gaps = [], spawnedCoins = [], jumpBoards = [];
 let score = 0, earnedCoins = 0;
 let baseSpeed = 4.5, speed = 4.5, gameRunning = false;
 let dashTimer = 0, boostCoolDown = 0, roadOffset = 0, spawnCooldown = 0;
-let combo = 0, feverTimer = 0, coinSpawnTimer = 0;
+let combo = 0, feverTimer = 0, coinSpawnTimer = 0, floatTimer = 0;
 let keys = {};
 
 const bindVirtualButton = (btnId, keyName) => {
@@ -387,51 +350,60 @@ const bindVirtualButton = (btnId, keyName) => {
     btn.addEventListener("mouseup", (e) => { e.preventDefault(); keys[keyName] = false; });
 };
 
-document.addEventListener("keydown", e => {
-    keys[e.code] = true;
-    if(e.key === "h" || e.key === "H") {
-        coins += 100; updateCoinUI(); saveGameData(); playSE(1500, 0.1, "sine", 0.1);
-    }
-});
+document.addEventListener("keydown", e => { keys[e.code] = true; });
 document.addEventListener("keyup", e => keys[e.code] = false);
-
 bindVirtualButton("btnLeft", "ArrowLeft"); bindVirtualButton("btnRight", "ArrowRight");
 bindVirtualButton("btnJump", "Space"); bindVirtualButton("btnBoost", "ArrowUp");
 
-const LANE_OFFSETS = [-0.7, -0.35, 0, 0.35, 0.7];
+// ★修正点2: 敵の出現レーンを端まで広げる（±0.9に拡張）
+const LANE_OFFSETS = [-0.9, -0.45, 0, 0.45, 0.9];
 
 function initHome() {
-    resize();
-    player = { x: canvas.width / 2, y: canvas.height - 180, vy: 0, onGround: true, jumpOverGap: false };
-    gameRunning = false;
-    homeUI.style.display = "block"; resultOverlay.style.display = "none"; gameControls.style.display = "none";
+    resize(); player = { x: canvas.width / 2, y: canvas.height - 180, vy: 0, onGround: true, jumpOverGap: false };
+    gameRunning = false; homeUI.style.display = "block"; resultOverlay.style.display = "none"; gameControls.style.display = "none";
     updateCoinUI(); stopBGM(); 
 }
 
-document.getElementById("endlessBtn").onclick = (e) => {
-    e.stopPropagation(); initAudio(); playSelectedBGM(); 
+// 別ファイルへ遷移してストーリー開始
+document.getElementById("storyBtn").onclick = () => {
+    window.location.href = `story.html?stage=0`;
+};
+document.getElementById("endlessBtn").onclick = () => { gameMode = 'endless'; startGame(); };
+
+function startGame() {
+    resize(); // ★修正点1: 画面サイズをここで合わせる
+    initAudio(); playSelectedBGM(); 
     homeUI.style.display = "none"; gameControls.style.display = "flex"; 
     player = { x: canvas.width / 2, y: canvas.height - 180, vy: 0, onGround: true, jumpOverGap: false };
-    enemies = []; gaps = []; spawnedCoins = [];
+    enemies = []; gaps = []; spawnedCoins = []; jumpBoards = [];
     score = 0; earnedCoins = 0; baseSpeed = 4.5; speed = 4.5; 
-    dashTimer = 0; boostCoolDown = 0; spawnCooldown = 0; coinSpawnTimer = 24; combo = 0; feverTimer = 0; roadOffset = 0;
+    dashTimer = 0; boostCoolDown = 0; spawnCooldown = 0; coinSpawnTimer = 24; floatTimer = 0; combo = 0; feverTimer = 0; roadOffset = 0;
     iframeTimer = 0; latiasShield = (currentChar === "char_latias");
     keys = {}; gameRunning = true;
-};
+}
 
-document.getElementById("backToHomeBtn").onclick = () => initHome();
+document.getElementById("backToHomeBtn").onclick = () => { initHome(); };
 
 function getRoadHalfWidth(y) { return ROAD_TOP_W + (ROAD_BTM_W - ROAD_TOP_W) * Math.max(0, y / canvas.height); }
 function getXPos(y, offset) { return (canvas.width / 2) + (offset * getRoadHalfWidth(y)); }
 
-// ★追い越し車の出現ロジック修正
 function spawnLogic() {
     if(!gameRunning || feverTimer > 0) return;
     if(spawnCooldown > 0) { spawnCooldown--; return; }
     if(Math.random() < 0.15) {
         const type = Math.random();
         const SPAWN_GAP = CHAR_H * Math.max(2, 5 - (baseSpeed - 4.5) * 0.5); 
-        if(type < 0.7) {
+        
+        if (gameMode === 'story' && type < 0.25) {
+            enemies.push({ lane_offset: LANE_OFFSETS[Math.floor(Math.random() * LANE_OFFSETS.length)], y: -CHAR_H, speed: 0, type: 'manhole' });
+            spawnCooldown = Math.floor((SPAWN_GAP * 0.8) / Math.max(speed, 1));
+            return;
+        }
+
+        if(type < 0.05) { // ジャンプボード出現
+            jumpBoards.push({ lane_offset: LANE_OFFSETS[Math.floor(Math.random() * LANE_OFFSETS.length)], y: -50 });
+            spawnCooldown = Math.floor(SPAWN_GAP / Math.max(speed, 1));
+        } else if(type < 0.7) {
             let spawnCount = Math.random() < 0.8 ? 1 : 2; let availableLanes = [...LANE_OFFSETS];
             for(let i=0; i<spawnCount; i++){
                 let offset = availableLanes.splice(Math.floor(Math.random() * availableLanes.length), 1)[0];
@@ -439,14 +411,7 @@ function spawnLogic() {
             }
             spawnCooldown = Math.floor(SPAWN_GAP / Math.max(speed - (baseSpeed * 0.5), 1)); 
         } else if(type < 0.85) {
-            // ★高速車：初期配置を遠くにし、警告タイマー（90フレーム=約1.5秒）を付与
-            enemies.push({ 
-                lane_offset: LANE_OFFSETS[Math.floor(Math.random() * LANE_OFFSETS.length)], 
-                y: canvas.height + 800, 
-                speed: baseSpeed * 1.8, 
-                type: 'fast',
-                warningTimer: 90 
-            });
+            enemies.push({ lane_offset: LANE_OFFSETS[Math.floor(Math.random() * LANE_OFFSETS.length)], y: canvas.height + 800, speed: baseSpeed * 1.8, type: 'fast', warningTimer: 90 });
             spawnCooldown = Math.floor(SPAWN_GAP / Math.max((baseSpeed * 1.8) - speed, 1));
         } else {
             gaps.push({ y: -180 }); spawnCooldown = Math.floor((SPAWN_GAP * 1.2) / Math.max(speed, 1)); 
@@ -454,14 +419,36 @@ function spawnLogic() {
     }
 }
 
-function gameOver() {
+function gameOver(isClear = false) {
     if(!gameRunning) return;
     gameRunning = false; gameControls.style.display = "none"; stopBGM(); 
     let finalScore = Math.floor(score);
-    if(finalScore > highScore) highScore = finalScore;
+    if(finalScore > highScore && gameMode === 'endless') highScore = finalScore;
     coins += earnedCoins; saveGameData();
+    
     setTimeout(() => { 
         resultOverlay.style.display = "flex"; 
+        
+        if (isClear) {
+            document.getElementById("resultTitle").innerText = "ステージクリア！";
+            playSE(1200, 0.3, "sine", 0.1); setTimeout(() => playSE(1500, 0.4, "sine", 0.1), 300);
+            document.getElementById("storyClearText").style.display = "block";
+            document.getElementById("storyClearText").innerText = STORY_DATA[currentStoryStage].clearText;
+            
+            // 次のステージへ進むボタン
+            let nextBtn = document.getElementById("nextStageBtn");
+            if(currentStoryStage < STORY_DATA.length - 1) {
+                nextBtn.style.display = "block";
+                nextBtn.onclick = () => { window.location.href = `story.html?stage=${currentStoryStage + 1}`; };
+            } else {
+                nextBtn.style.display = "none";
+                document.getElementById("storyClearText").innerText += "\n全ステージクリア！";
+            }
+        } else {
+            document.getElementById("resultTitle").innerText = "ゲームオーバー";
+            document.getElementById("storyClearText").style.display = "none";
+            document.getElementById("nextStageBtn").style.display = "none";
+        }
         document.getElementById("resultScore").innerHTML = `今回のスコア: <span style="color:#ffeb3b">${finalScore}</span>`; 
         document.getElementById("highScoreText").innerText = Math.floor(highScore);
         document.getElementById("resultCoins").innerText = earnedCoins;
@@ -472,6 +459,8 @@ function update(){
     if(!gameRunning || !player) return; 
     spawnLogic(); baseSpeed += 0.001; let currentMoveSpeed = baseSpeed;
     if(iframeTimer > 0) iframeTimer--;
+
+    if (gameMode === 'story' && score >= STORY_DATA[currentStoryStage].goalScore) { gameOver(true); return; }
 
     if(coinSpawnTimer <= 0) {
         if(Math.random() < (feverTimer > 0 ? 0.5 : 0.1)) spawnedCoins.push({ lane_offset: LANE_OFFSETS[Math.floor(Math.random() * LANE_OFFSETS.length)], y: -100 });
@@ -485,7 +474,11 @@ function update(){
     speed = currentMoveSpeed;
 
     if((keys["Space"] || keys["KeyK"]) && player.onGround){ player.vy = -10; player.onGround = false; player.jumpOverGap = false; playSE(600, 0.1, "sine"); }
-    player.vy += 0.8; player.y += player.vy;
+    
+    // 空中滞空処理
+    if(floatTimer > 0) { floatTimer--; player.vy = 0; } 
+    else { player.vy += 0.8; }
+    player.y += player.vy;
 
     if(player.y >= canvas.height - 180){
         if(!player.onGround){
@@ -495,28 +488,47 @@ function update(){
         player.y = canvas.height - 180; player.vy = 0; player.onGround = true;
     }
 
-    if(player.onGround) { if(keys["ArrowLeft"] || keys["KeyA"]) player.x -= 9; if(keys["ArrowRight"] || keys["KeyD"]) player.x += 9; }
+    // ストーリー中はジャンプ中でも左右移動可能
+    if(player.onGround || gameMode === 'story') { 
+        if(keys["ArrowLeft"] || keys["KeyA"]) player.x -= 9; 
+        if(keys["ArrowRight"] || keys["KeyD"]) player.x += 9; 
+    }
+    
     let curRoadHalf = getRoadHalfWidth(player.y);
-    player.x = Math.max(canvas.width/2 - curRoadHalf, Math.min(canvas.width/2 + curRoadHalf, player.x));
+    let limitWidth = curRoadHalf * 0.9; // ★修正点3: 限界幅を少し狭めてはみ出ないようにする
+    player.x = Math.max(canvas.width/2 - limitWidth, Math.min(canvas.width/2 + limitWidth, player.x));
     roadOffset = (roadOffset + speed) % 100;
     
-    enemies.forEach(e => {
-        // ★高速車（追い越し車）の警告・待機処理
-        if (e.type === 'fast' && e.warningTimer > 0) {
-            e.warningTimer--;
-            if (e.warningTimer % 10 === 0) playSE(1800, 0.05, "square", 0.03); // ピピピ
-            e.y = canvas.height + 300; // 警告中は画面外下方に固定
-        } else {
-            e.y += (speed - e.speed); 
+    // ジャンプボード処理
+    jumpBoards.forEach((b, i) => {
+        b.y += speed; let bx = getXPos(b.y, b.lane_offset); let s = 0.5 + (0.5 * Math.max(0, b.y / canvas.height));
+        if (player.onGround && Math.abs(player.x - bx) < CHAR_W * 0.6 * s && Math.abs(player.y - b.y) < 30) {
+            player.onGround = false; player.jumpOverGap = false;
+            if (keys["Space"] || keys["KeyK"]) {
+                player.vy = -12; floatTimer = 120; // 押してたら大ジャンプ＆2秒滞空
+                playSE(1000, 0.2, "sine", 0.1);
+            } else {
+                player.vy = -5; // 放置でちょいジャンプ
+                playSE(800, 0.1, "sine", 0.1);
+            }
+            jumpBoards.splice(i, 1);
         }
+    });
+
+    enemies.forEach(e => {
+        if (e.type === 'fast' && e.warningTimer > 0) {
+            e.warningTimer--; if (e.warningTimer % 10 === 0) playSE(1800, 0.05, "square", 0.03); e.y = canvas.height + 300; 
+        } else { e.y += (speed - e.speed); }
 
         let ex = getXPos(e.y, e.lane_offset); let s = 0.5 + (0.5 * Math.max(0, e.y / canvas.height));
-        if(gameRunning && feverTimer <= 0 && iframeTimer <= 0 && player.onGround && Math.abs(player.x - ex) < CHAR_W * 0.5 * s && Math.abs(player.y - e.y) < CHAR_H * 0.7 * s) {
-            if (currentChar === "char_latias" && latiasShield) {
-                latiasShield = false; iframeTimer = 60; e.y = -999;
-                playSE(200, 0.3, "sawtooth", 0.2);
-            } else {
-                gameOver();
+        
+        if(gameRunning && feverTimer <= 0 && iframeTimer <= 0) {
+            if (e.type === 'manhole') {
+                if (player.onGround && Math.abs(player.x - ex) < CHAR_W * 0.4 * s && Math.abs(player.y - e.y) < 20 * s) { gameOver(); } 
+                else if (!player.onGround && Math.abs((e.y+20) - player.y) < 60 && Math.abs(player.x - ex) < CHAR_W * 0.6 * s) { player.jumpOverGap = true; }
+            } else if (player.onGround && Math.abs(player.x - ex) < CHAR_W * 0.5 * s && Math.abs(player.y - e.y) < CHAR_H * 0.7 * s) {
+                if (currentChar === "char_latias" && latiasShield) { latiasShield = false; iframeTimer = 60; e.y = -999; playSE(200, 0.3, "sawtooth", 0.2); } 
+                else { gameOver(); }
             }
         }
     });
@@ -529,7 +541,8 @@ function update(){
         }
     });
     score += speed * 0.1;
-    enemies = enemies.filter(e => e.y < canvas.height + 900 && e.y > -400); gaps = gaps.filter(g => g.y < canvas.height + 200); spawnedCoins = spawnedCoins.filter(c => c.y < canvas.height + 100);
+    enemies = enemies.filter(e => e.y < canvas.height + 900 && e.y > -400); gaps = gaps.filter(g => g.y < canvas.height + 200); 
+    spawnedCoins = spawnedCoins.filter(c => c.y < canvas.height + 100); jumpBoards = jumpBoards.filter(b => b.y < canvas.height + 200);
 }
 
 function draw(){
@@ -551,6 +564,14 @@ function draw(){
         else { ctx.fillStyle = "#000"; ctx.fillRect(canvas.width / 2 - gw / 2, g.y, gw, gh); }
     });
 
+    jumpBoards.forEach(b => {
+        let bx = getXPos(b.y, b.lane_offset); let s = 0.5 + (0.5 * Math.max(0, b.y / canvas.height));
+        let bw = 60 * s; let bh = 20 * s;
+        ctx.fillStyle = "#00ffcc"; ctx.beginPath(); ctx.ellipse(bx, b.y, bw, bh, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2 * s; ctx.stroke();
+        ctx.fillStyle = "#fff"; ctx.font = `bold ${20*s}px sans-serif`; ctx.textAlign = "center"; ctx.fillText("↑", bx, b.y + 6*s); ctx.textAlign = "start";
+    });
+
     spawnedCoins.forEach(coin => {
         let cx = getXPos(coin.y, coin.lane_offset); let s = 0.5 + (0.5 * Math.max(0, coin.y / canvas.height)); let radius = 15 * s;
         ctx.fillStyle = "#ffd700"; ctx.beginPath(); ctx.arc(cx, coin.y, radius, 0, Math.PI * 2); ctx.fill();
@@ -561,10 +582,16 @@ function draw(){
 
     enemies.forEach(e => {
         let x = getXPos(e.y, e.lane_offset); let s = 0.5 + (0.5 * Math.max(0, e.y / canvas.height));
-        // ★警告表示
+        if (e.type === 'manhole') {
+            if(e.y < canvas.height + 100 && e.y > -100) {
+                let mw = 50 * s; let mh = 20 * s;
+                ctx.fillStyle = "#111"; ctx.beginPath(); ctx.ellipse(x, e.y, mw, mh, 0, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#444"; ctx.lineWidth = 3 * s; ctx.stroke();
+            }
+            return;
+        }
         if(e.type === 'fast' && e.warningTimer > 0){
-            ctx.fillStyle = "red"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
-            ctx.fillText("!", x, canvas.height - 40); ctx.textAlign = "start";
+            ctx.fillStyle = "red"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center"; ctx.fillText("!", x, canvas.height - 40); ctx.textAlign = "start";
         }
         if(e.y < canvas.height + 100 && e.y > -100) {
             if(e.type === 'fast') ctx.filter = "hue-rotate(90deg)";
@@ -576,12 +603,9 @@ function draw(){
     ctx.save();
     if(dashTimer > 0 || feverTimer > 0) ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
     let jumpScale = player.onGround ? 1 : 1.15;
-    let isLatias = (currentChar === "char_latias");
-    let scaleMult = isLatias ? 1.8 : 1; 
-    let drawW = CHAR_W * jumpScale * scaleMult;
-    let drawH = CHAR_H * jumpScale * scaleMult;
-    let drawX = player.x - drawW / 2;
-    let drawY = player.y - drawH / 2 + (isLatias ? -CHAR_H * 0.4 : 0);
+    let isLatias = (currentChar === "char_latias"); let scaleMult = isLatias ? 1.8 : 1; 
+    let drawW = CHAR_W * jumpScale * scaleMult; let drawH = CHAR_H * jumpScale * scaleMult;
+    let drawX = player.x - drawW / 2; let drawY = player.y - drawH / 2 + (isLatias ? -CHAR_H * 0.4 : 0);
 
     if(iframeTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) ctx.globalAlpha = 0.5;
     if(feverTimer > 0) ctx.filter = "saturate(5) brightness(1.2)";
@@ -597,20 +621,35 @@ function draw(){
     ctx.restore();
 
     if(gameRunning) {
-        ctx.fillStyle = "white"; ctx.font = "bold 24px sans-serif"; ctx.fillText("SCORE: " + Math.floor(score), 20, 45);
+        ctx.fillStyle = "white"; ctx.font = "bold 24px sans-serif"; 
+        if (gameMode === 'story') {
+            let remain = Math.max(0, STORY_DATA[currentStoryStage].goalScore - Math.floor(score));
+            ctx.fillText("残り距離: " + remain + " m", 20, 45);
+        } else {
+            ctx.fillText("SCORE: " + Math.floor(score), 20, 45);
+        }
+
         ctx.fillStyle = "#ffeb3b"; ctx.fillText("COMBO: " + combo, 20, 80);
         ctx.fillStyle = "#66ff33"; ctx.fillText("💰 " + earnedCoins + " yen", 20, 115); 
         ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(20, canvas.height-40, 150, 20);
-        if(boostCoolDown > 0) {
-            ctx.fillStyle = "#555"; ctx.fillRect(20, canvas.height-40, (1 - boostCoolDown/300) * 150, 20);
-        } else {
-            ctx.fillStyle = "#ffeb3b"; ctx.fillRect(20, canvas.height-40, 150, 20);
-        }
+        if(boostCoolDown > 0) { ctx.fillStyle = "#555"; ctx.fillRect(20, canvas.height-40, (1 - boostCoolDown/300) * 150, 20); } 
+        else { ctx.fillStyle = "#ffeb3b"; ctx.fillRect(20, canvas.height-40, 150, 20); }
     }
 }
 
 function loop(){ update(); draw(); requestAnimationFrame(loop); }
-initHome(); loop();
+
+// URLパラメータからストーリー遷移をチェック
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('mode') === 'story') {
+    gameMode = 'story';
+    currentStoryStage = parseInt(urlParams.get('stage')) || 0;
+    setTimeout(startGame, 100); // すぐゲーム開始
+} else {
+    initHome(); 
+}
+
+loop();
 
 </script>
 </body>
