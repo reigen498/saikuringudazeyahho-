@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ストーリー - 爆走チャリレース</title>
+<style>
+    body { 
+        margin: 0; background: #111; color: #fff; overflow: hidden; 
+        font-family: 'Segoe UI', sans-serif; user-select: none;
+    }
+    .bg { 
+        position: absolute; width: 100vw; height: 100vh; 
+        background: linear-gradient(to bottom, #191970, #ff7e5f); opacity: 0.8; z-index: -1;
+    }
+    .char-container { 
+        position: absolute; bottom: 22vh; width: 100vw; 
+        display: flex; justify-content: space-between; padding: 0 5vw; box-sizing: border-box; 
+    }
+    .char { 
+        width: 35vw; max-width: 250px; height: 40vh; 
+        background-size: contain; background-repeat: no-repeat; background-position: bottom center; 
+        transition: all 0.3s; filter: brightness(0.4); opacity: 0.6; 
+    }
+    .char.active { filter: brightness(1); opacity: 1; transform: scale(1.1); z-index: 5; }
+    
+    #charLeft { transform-origin: bottom left; }
+    #charRight { transform-origin: bottom right; }
+    
+    .dialogue-box { 
+        position: absolute; bottom: 3vh; left: 5vw; width: 90vw; height: 22vh; 
+        background: rgba(0, 0, 0, 0.85); border: 4px solid #fff; border-radius: 15px; 
+        padding: 15px; box-sizing: border-box; cursor: pointer; box-shadow: 0 0 15px rgba(0,0,0,0.8); z-index: 10;
+    }
+    .name-tag { 
+        font-weight: bold; color: #ffeb3b; font-size: clamp(1rem, 4vw, 1.3rem); 
+        margin-bottom: 8px; border-bottom: 2px solid #555; display: inline-block; padding-bottom: 2px; 
+    }
+    .text-content { font-size: clamp(0.9rem, 4vw, 1.1rem); line-height: 1.5; font-weight: bold; white-space: pre-wrap; }
+    .next-indicator { 
+        position: absolute; bottom: 10px; right: 15px; font-size: 0.9rem; 
+        animation: blink 1s infinite; color: #ffeb3b; 
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="char-container">
+    <div id="charLeft" class="char active"></div>
+    <div id="charRight" class="char"></div>
+</div>
+
+<div class="dialogue-box" id="clickArea">
+    <div id="nameTag" class="name-tag">名前</div>
+    <div id="textContent" class="text-content">テキスト</div>
+    <div class="next-indicator">▼ タップ / Spaceキー</div>
+</div>
+
+<script>
+// --- ストーリーデータ ---
+// ステージ数と内容は main.html の STORY_DATA の数と合わせてください
+const STORY_DATA = [
+    {
+        opponentImg: "char_ninja.png",
+        dialogue: [
+            { pos: "right", name: "謎の忍者", text: "フハハ！俺の爆走スピードに\nついてこれるかな？" },
+            { pos: "left", name: "自分", text: "望むところだ！\n絶対に負けないぞ！" },
+            { pos: "right", name: "謎の忍者", text: "いくぞ！勝負だ！！" }
+        ]
+    },
+    {
+        opponentImg: "char_robot.png",
+        dialogue: [
+            { pos: "right", name: "メカ", text: "ピピ... 対象ヲ確認。\nレースモード二移行シマス。" },
+            { pos: "left", name: "自分", text: "次はロボットか！" },
+            { pos: "right", name: "メカ", text: "ブースト起動。排除シマス。" }
+        ]
+    }
+];
+
+const urlParams = new URLSearchParams(window.location.search);
+let stage = parseInt(urlParams.get('stage')) || 0;
+
+if(stage >= STORY_DATA.length) {
+    alert("全ステージクリア！ホームに戻ります。");
+    window.location.href = 'main.html';
+}
+
+const currentStageData = STORY_DATA[stage];
+let dialogueIndex = 0;
+
+// キャラクター画像の設定
+document.getElementById('charRight').style.backgroundImage = `url('${currentStageData.opponentImg}')`;
+
+// ローカルストレージから装備中のキャラを取得して左側に表示
+let myChar = "主人公.png"; // デフォルト
+try {
+    let savedChar = localStorage.getItem("chari_current_char");
+    if(savedChar === "char_ninja") myChar = "char_ninja.png";
+    else if(savedChar === "char_robot") myChar = "char_robot.png";
+    else if(savedChar === "char_god") myChar = "char_god.png";
+    else if(savedChar === "char_latias") myChar = "latias.png";
+} catch(e) {}
+document.getElementById('charLeft').style.backgroundImage = `url('${myChar}')`;
+
+function showDialogue() {
+    if (dialogueIndex >= currentStageData.dialogue.length) {
+        // 会話が終わったら main.html に遷移し、ステージ番号を渡してゲームを開始
+        window.location.href = `main.html?mode=story&stage=${stage}`;
+        return;
+    }
+
+    let line = currentStageData.dialogue[dialogueIndex];
+    document.getElementById("nameTag").innerText = line.name;
+    document.getElementById("textContent").innerText = line.text;
+
+    let leftChar = document.getElementById("charLeft");
+    let rightChar = document.getElementById("charRight");
+
+    if (line.pos === "left") {
+        leftChar.classList.add("active");
+        rightChar.classList.remove("active");
+    } else {
+        rightChar.classList.add("active");
+        leftChar.classList.remove("active");
+    }
+}
+
+function next() {
+    dialogueIndex++;
+    showDialogue();
+}
+
+// タップとスペースキーのイベント
+document.getElementById('clickArea').addEventListener('click', next);
+document.body.addEventListener('click', (e) => {
+    if(e.target.id !== 'clickArea') next();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') next();
+});
+
+// 最初の一文を表示
+showDialogue();
+</script>
+
+</body>
+</html>
