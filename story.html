@@ -85,7 +85,7 @@ let stage = parseInt(urlParams.get('stage')) || 0;
 
 if(stage >= STORY_DATA.length) {
     alert("全ステージクリア！ホームに戻ります。");
-    window.location.href = 'main.html';
+    window.location.href = 'index.html';
 }
 
 const currentStageData = STORY_DATA[stage];
@@ -108,7 +108,7 @@ document.getElementById('charLeft').style.backgroundImage = `url('${myChar}')`;
 function showDialogue() {
     if (dialogueIndex >= currentStageData.dialogue.length) {
         // 会話が終わったら main.html に遷移し、ステージ番号を渡してゲームを開始
-        window.location.href = `main.html?mode=story&stage=${stage}`;
+        window.location.href = `index.html?mode=story&stage=${stage}`;
         return;
     }
 
